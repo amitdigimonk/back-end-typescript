@@ -81,11 +81,39 @@
         .method.PUT { color: #d97706; }
         .method.PATCH { color: #7c3aed; }
         .method.DELETE { color: #dc2626; }
-        
+        .endpoint-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .description {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 2px;
+        }
+        .body-params {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 2px;
+        }
+        .body-label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-right: 4px;
+        }
         .path {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
             font-size: 0.9rem;
             color: #444;
+            font-weight: 500;
+        }
+        .method-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 60px;
         }
     </style>
 </head>
@@ -105,12 +133,25 @@
                 <div class="docs-section">
                     <h2><%= category === 'general' ? 'General' : category %></h2>
                     <% endpoints[category].forEach(function(endpoint) { %>
-                        <% endpoint.methods.forEach(function(method) { %>
-                            <div class="endpoint">
-                                <span class="method <%= method %>"><%= method %></span>
-                                <span class="path"><%= endpoint.path %></span>
+                        <div class="endpoint">
+                            <div class="method-container">
+                                <% endpoint.methods.forEach(function(method) { %>
+                                    <span class="method <%= method %>"><%= method %></span>
+                                <% }); %>
                             </div>
-                        <% }); %>
+                            <div class="endpoint-details">
+                                <span class="path"><%= endpoint.path %></span>
+                                <% if (endpoint.description) { %>
+                                    <div class="description"><%= endpoint.description %></div>
+                                <% } %>
+                                <% if (endpoint.body && endpoint.body.length > 0) { %>
+                                    <div class="body-params">
+                                        <span class="body-label">Body:</span>
+                                        <%= endpoint.body.join(', ') %>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
                     <% }); %>
                 </div>
             <% }); %>

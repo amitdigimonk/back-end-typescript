@@ -4,6 +4,9 @@ import path from 'path';
 export interface RouteMeta {
     path: string;
     methods: string[];
+    description?: string;
+    body?: string[];    // Array of required keys
+    params?: string[];
 }
 
 export function generateRoutesMap(): Record<string, RouteMeta[]> {
@@ -18,7 +21,7 @@ export function generateRoutesMap(): Record<string, RouteMeta[]> {
     const srcDir = path.join(projectRoot, 'src');
     const ext = '.ts';
 
-    const routesFilePath = path.join(srcDir, 'routes', `routes${ext}`);
+    const routesFilePath = path.join(srcDir, 'routes', `v1.routes${ext}`);
 
     // 1. Read routes file to get the base paths mapping
     if (!fs.existsSync(routesFilePath)) return endpoints;
@@ -56,16 +59,31 @@ export function generateRoutesMap(): Record<string, RouteMeta[]> {
         const routerContent = fs.readFileSync(resolvedPath, 'utf8');
         const endpointList: RouteMeta[] = [];
 
-        // Matches: router.post('/login', ...) or router.get('/profile', ...)
-        const routePattern = /router\.(get|post|put|patch|delete)\(\s*['"]([^'"]+)['"]/g;
+        // Matches: (optional JSDoc) router.post('/login', ...) or router.get('/profile', ...)
+        const routePattern = /(\/\*\*[\s\S]*?\*\/)?\s*router\.(get|post|put|patch|delete)\(\s*['"]([^'"]+)['"]/g;
+
         let routeMatch;
 
         // Remove the starting slash of the prefix if it exists to categorize nicely
         const category = base.prefix.replace(/^\//, '') || 'general';
 
         while ((routeMatch = routePattern.exec(routerContent)) !== null) {
-            const method = routeMatch[1].toUpperCase();
-            const subPath = routeMatch[2];
+            const comment = routeMatch[1];
+            const method = routeMatch[2].toUpperCase();
+            const subPath = routeMatch[3];
+
+            let description = undefined;
+            let body = undefined;
+
+            if (comment) {
+                const descMatch = /@desc\s+(.+)/.exec(comment);
+                if (descMatch) description = descMatch[1].trim();
+
+                const bodyMatch = /@body\s+(.+)/.exec(comment);
+                if (bodyMatch) {
+                    body = bodyMatch[1].split(',').map(s => s.trim());
+                }
+            }
 
             // Reconstruct full path e.g. /api/v1/auth/login
             const fullPath = `/api/v1${base.prefix === '/' ? '' : base.prefix}${subPath === '/' ? '' : subPath}`;
@@ -74,8 +92,13 @@ export function generateRoutesMap(): Record<string, RouteMeta[]> {
             const existing = endpointList.find(e => e.path === fullPath);
             if (existing && !existing.methods.includes(method)) {
                 existing.methods.push(method);
+                if (description) existing.description = description;
+                if (body) existing.body = body;
             } else if (!existing) {
-                endpointList.push({ path: fullPath, methods: [method] });
+                const routeMeta: RouteMeta = { path: fullPath, methods: [method] };
+                if (description) routeMeta.description = description;
+                if (body) routeMeta.body = body;
+                endpointList.push(routeMeta);
             }
         }
 
