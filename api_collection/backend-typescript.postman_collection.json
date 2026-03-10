@@ -1,0 +1,397 @@
+{
+	"info": {
+		"_postman_id": "853ba5d0-af68-414c-862a-2628223203a8",
+		"name": "backend-typescript",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "49810578",
+		"_collection_link": "https://amit-4ddbfe7e-6523165.postman.co/workspace/amit-mumana's-Workspace~6043c996-e05e-44de-84ec-36f6118b4309/collection/49810578-853ba5d0-af68-414c-862a-2628223203a8?action=share&source=collection_link&creator=49810578"
+	},
+	"item": [
+		{
+			"name": "auth",
+			"item": [
+				{
+					"name": "register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the JSON response",
+									"const jsonData = pm.response.json();",
+									"",
+									"// Test that the response status is 201",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"// Test that the token field exists and is a non-empty string",
+									"pm.test(\"Token exists and is a non-empty string\", function () {",
+									"    pm.expect(jsonData).to.have.property(\"token\");",
+									"    pm.expect(jsonData.token).to.be.a(\"string\").and.not.empty;",
+									"});",
+									"",
+									"// Save the token to an environment variable",
+									"pm.environment.set(\"authToken\", \"Bearer \" + jsonData.token);"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"admin\",\n    \"email\": \"admin@gmail.com\",\n    \"password\" : \"admin@123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register?lan=ja",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							],
+							"query": [
+								{
+									"key": "lan",
+									"value": "ja"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Response has token field\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.status === \"success\" && jsonData.token) {",
+									"        pm.environment.set('authToken', 'Bearer ' + jsonData.token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@gmail.com\",\n    \"password\" : \"admin@123\"\n}\n\n// sql injection \n\n// {\n//     \"email\": { \"$gt\": \"\" },\n//     \"password\": { \"$gt\": \"\" }\n// }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login?lan=en",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							],
+							"query": [
+								{
+									"key": "lan",
+									"value": "en"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "health",
+			"item": [
+				{
+					"name": "health",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}?lan=ja",
+							"host": [
+								"{{base_url}}"
+							],
+							"query": [
+								{
+									"key": "lan",
+									"value": "ja"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "rate limit testing",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (pm.info.iteration === 0) {",
+									"    const keys = [",
+									"        'rl_total_requests',",
+									"        'rl_success_2xx',",
+									"        'rl_429_count',",
+									"        'rl_4xx_other',",
+									"        'rl_5xx',",
+									"        'rl_first_429_iteration',",
+									"        'rl_first_429_time_ms',",
+									"        'rl_last_response_info'",
+									"    ];",
+									"    keys.forEach(k => pm.environment.unset(k));",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// --- Basic status check ---",
+									"pm.test(\"Status is 2xx or 429\", function () {",
+									"    pm.expect([200, 201, 204, 400, 401, 403, 429]).to.include(pm.response.code);",
+									"});",
+									"",
+									"// --- Capture response metadata per iteration ---",
+									"const iteration = pm.info.iteration;",
+									"const statusCode = pm.response.code;",
+									"const responseTime = pm.response.responseTime;",
+									"const retryAfterHeader = pm.response.headers.get('Retry-After');",
+									"",
+									"// Try to parse JSON safely",
+									"let parsedBody = {};",
+									"try {",
+									"    parsedBody = pm.response.json();",
+									"} catch (e) {",
+									"    parsedBody = { parseError: true };",
+									"}",
+									"",
+									"// Keep simple counters in environment",
+									"function incCounter(name) {",
+									"    const current = Number(pm.environment.get(name) || 0);",
+									"    pm.environment.set(name, current + 1);",
+									"}",
+									"",
+									"incCounter('rl_total_requests');",
+									"",
+									"if (statusCode === 200) {",
+									"    incCounter('rl_success_2xx');",
+									"} else if (statusCode === 429) {",
+									"    incCounter('rl_429_count');",
+									"} else if (statusCode >= 400 && statusCode < 500) {",
+									"    incCounter('rl_4xx_other');",
+									"} else if (statusCode >= 500) {",
+									"    incCounter('rl_5xx');",
+									"}",
+									"",
+									"// Track the first time we see a 429",
+									"if (statusCode === 429 && !pm.environment.get('rl_first_429_iteration')) {",
+									"    pm.environment.set('rl_first_429_iteration', String(iteration));",
+									"    pm.environment.set('rl_first_429_time_ms', String(responseTime));",
+									"}",
+									"",
+									"// Keep minimal last-response info so you can inspect later",
+									"const lastInfo = {",
+									"    iteration,",
+									"    statusCode,",
+									"    responseTime,",
+									"    retryAfterHeader: retryAfterHeader || null,",
+									"    timestamp: new Date().toISOString()",
+									"};",
+									"pm.environment.set('rl_last_response_info', JSON.stringify(lastInfo));",
+									"",
+									"// Optional: fail the run after too many 429s",
+									"const max429 = Number(pm.environment.get('rl_max_429_before_fail') || 0);",
+									"if (max429 > 0) {",
+									"    const current429 = Number(pm.environment.get('rl_429_count') || 0);",
+									"    pm.test(\"Rate limit: 429 count not exceeded threshold\", function () {",
+									"        pm.expect(current429).to.be.below(max429);",
+									"    });",
+									"}",
+									"",
+									"// Optional console logging if you want to see streaming info",
+									"console.log('[RL]', 'iter:', iteration, 'status:', statusCode, 'rt:', responseTime, 'Retry-After:', retryAfterHeader);"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\":\"{{test_email}}\",\"password\":\"{{test_password}}\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login?lan=ja",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							],
+							"query": [
+								{
+									"key": "lan",
+									"value": "ja"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "sub category",
+			"item": [
+				{
+					"name": "create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Abstract Art\",\n  \"description\": \"Cool wallpapers\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/sub-category",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sub-category"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "list",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/sub-category/list",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sub-category",
+								"list"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/sub-category/6977266833acb10bf606c78a",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sub-category",
+								"6977266833acb10bf606c78a"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Abstract Art\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/sub-category/697728542f45bc5fb4738b8b",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sub-category",
+								"697728542f45bc5fb4738b8b"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,28 @@
+{
+  "health_check": "Server is healthy",
+  "welcome": "Welcome...",
+  "auth": {
+    "email_exists": "Email is already registered",
+    "invalid_credentials": "Invalid email or password",
+    "token_failed": "Not authorized, token failed",
+    "no_token": "Not authorized, no token provided",
+    "too_many_attempts": "Too many login attempts, please try again after an hour",
+    "forbidden": "You do not have permission to perform this action"
+  },
+  "category": {
+    "not_found": "Category not found",
+    "deleted": "Category deleted successfully",
+    "created": "Category created successfully",
+    "updated": "Category updated successfully"
+  },
+  "errors": {
+    "too_many_requests": "Too many requests from this IP, please try again later"
+  },
+  "sub_category": {
+    "created": "Sub category created successfully",
+    "fetched": "Sub categories fetched successfully",
+    "updated": "Sub-category updated successfully",
+    "deleted": "Sub category deleted successfully",
+    "exists": "A sub category with this name already exists"
+  }
+}
